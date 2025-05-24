@@ -1,35 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// src/App.jsx
+import React, { useState } from 'react';
+import { ThemeProvider, CssBaseline, Box, useTheme } from '@mui/material';
+import appTheme from './theme';
+import Sidebar from './components/Sidebar';
+import MainContent from './components/MainContent';
+
+export const EXPANDED_SIDEBAR_WIDTH = 280;
+export const COLLAPSED_SIDEBAR_WIDTH = 70; // Oder welche Breite deine zugeklappte Sidebar hat
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const theme = useTheme();
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const currentSidebarWidth = isSidebarOpen ? EXPANDED_SIDEBAR_WIDTH : COLLAPSED_SIDEBAR_WIDTH;
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <ThemeProvider theme={appTheme}>
+      <CssBaseline />
+      {/* Die Root-Box braucht nicht unbedingt display:flex, wenn Sidebar fixed ist */}
+      <Box sx={{ height: '100vh', backgroundColor: appTheme.palette.background.default, position: 'relative' }}>
+        <Sidebar
+          isOpen={isSidebarOpen}
+          toggleSidebar={toggleSidebar}
+          width={currentSidebarWidth}
+        />
+        {/* Dieser Container füllt den gesamten Viewport und zentriert den Inhalt */}
+        <Box
+          component="main"
+          sx={{
+            // position: 'absolute', top:0, left:0, right:0, bottom:0 // Eine Möglichkeit
+            width: '100vw', // Füllt die gesamte Viewport-Breite
+            height: '100vh',// Füllt die gesamte Viewport-Höhe
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',    // Zentriert Paper horizontal im Viewport
+            justifyContent: 'center',// Zentriert Paper vertikal im Viewport
+            position: 'relative',   // Für den absolut positionierten Footer
+            padding: theme.spacing(5), // z.B. 40px Abstand zu den Viewport-Rändern
+            boxSizing: 'border-box', // Damit Padding in width/height eingerechnet wird
+          }}
+        >
+          <MainContent />
+        </Box>
+      </Box>
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;
