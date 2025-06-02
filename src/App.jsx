@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { ThemeProvider, CssBaseline, Box, useTheme } from '@mui/material';
 import appTheme from './theme';
-import Sidebar from './components/Sidebar';
-import MainContent from './components/MainContent';
+import Sidebar from './components/sidebar';
+import MainContent from './components/mainContent';
 
 export const EXPANDED_SIDEBAR_WIDTH = 280;
 export const COLLAPSED_SIDEBAR_WIDTH = 70; // Oder welche Breite deine zugeklappte Sidebar hat
@@ -21,14 +21,12 @@ function App() {
   return (
     <ThemeProvider theme={appTheme}>
       <CssBaseline />
-      {/* Die Root-Box braucht nicht unbedingt display:flex, wenn Sidebar fixed ist */}
       <Box sx={{ height: '100vh', backgroundColor: appTheme.palette.background.default, position: 'relative' }}>
         <Sidebar
           isOpen={isSidebarOpen}
           toggleSidebar={toggleSidebar}
           width={currentSidebarWidth}
         />
-        {/* Dieser Container füllt den gesamten Viewport und zentriert den Inhalt */}
         <Box
           component="main"
           sx={{

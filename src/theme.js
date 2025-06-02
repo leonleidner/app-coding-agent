@@ -9,8 +9,8 @@ const theme = createTheme({
       main: "#E67117", // Du kannst die Primärfarbe anpassen
     },
     background: {
-      default: '#1e1e2f',
-      paper: '#27293d',   // Für Oberflächen wie Karten, Menüs
+      default: '#1a1a1a',
+      paper: '#212121',   // Für Oberflächen wie Karten, Menüs
     },
     text: {
       primary: '#e0e0e0',
