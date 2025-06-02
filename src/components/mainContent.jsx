@@ -25,7 +25,7 @@ const MainContent = () => {
     setTaskInput(event.target.value);
   };
 
-  const handleAskJules = async () => {
+  const handleAskCodingAgent = async () => {
     if (!taskInput.trim()) {
       setError("Bitte gib eine Aufgabe ein.");
       return;
@@ -117,7 +117,7 @@ const MainContent = () => {
           color="primary"
           size="large"
           fullWidth
-          onClick={handleAskJules} // Klick-Handler
+          onClick={handleAskCodingAgent} // Klick-Handler
           disabled={isLoading} // Deaktiviere Button während des Ladens
           sx={{ mb: 2, py: 1.5, borderRadius: '8px' }}
         >
