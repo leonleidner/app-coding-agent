@@ -147,7 +147,12 @@ async def run_crew_asynchronously(
 
     original_stdout = sys.stdout
     # event_type_prefix für die rohen CrewAI Konsolenlogs, die über WebSocket gestreamt werden
-    ws_stream = WebSocketStream(custom_callback_handler, original_stdout, event_type_prefix="CrewAI Console")
+    ws_stream = WebSocketStream(
+        custom_callback_handler,
+        original_stdout,
+        event_type_prefix="CrewAI Console",
+        loop=asyncio.get_running_loop(),
+    )
 
     try:
         await connection_manager.send_log_to_task(task_id, f"[SYSTEM] CrewAI Prozess wird gestartet. (Manager: {global_manager_llm.model})...")

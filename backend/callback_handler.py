@@ -178,12 +178,28 @@ class WebSocketCallbackHandler(BaseCallbackHandler):
 
 # Stelle sicher, dass diese Klasse auf oberster Ebene in der Datei definiert ist:
 class WebSocketStream(io.StringIO):
-    def __init__(self, callback_handler: WebSocketCallbackHandler, original_stdout: Any, event_type_prefix: str = "CrewAI Console"):
+    def __init__(
+        self,
+        callback_handler: WebSocketCallbackHandler,
+        original_stdout: Any,
+        event_type_prefix: str = "CrewAI Console",
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+    ):
         super().__init__()
         self.callback_handler = callback_handler
-        self.original_stdout = original_stdout # Speichere das originale stdout
+        self.original_stdout = original_stdout  # Speichere das originale stdout
         self.event_type_prefix = event_type_prefix
-        self.line_buffer = "" # Puffer für Zeilen
+        self.line_buffer = ""  # Puffer für Zeilen
+        # Event-Loop zum Scheduling der Sendetasks (wichtig bei Threads)
+        self.loop = loop or asyncio.get_event_loop()
+
+    def _schedule_send(self, coro: asyncio.Future) -> None:
+        """Sende das Log sicher im Hauptloop, auch wenn write() aus einem Thread
+        aufgerufen wird."""
+        if self.loop.is_running():
+            self.loop.call_soon_threadsafe(asyncio.create_task, coro)
+        else:
+            asyncio.run(coro)
 
     def write(self, s: str) -> int:
         # Schreibe auch in das originale stdout, damit es weiterhin in der Server-Konsole erscheint
@@ -194,11 +210,15 @@ class WebSocketStream(io.StringIO):
         self.line_buffer += s
         if '\n' in self.line_buffer:
             lines = self.line_buffer.split('\n')
-            self.line_buffer = lines[-1] # Behalte den Rest für die nächste Zeile
+            self.line_buffer = lines[-1]  # Behalte den Rest für die nächste Zeile
             for line in lines[:-1]:
-                if line.strip(): # Sende keine leeren Zeilen
-                    asyncio.create_task(
-                        self.callback_handler._send_log(self.event_type_prefix, line.strip(), is_raw_crewai_output=True)
+                if line.strip():  # Sende keine leeren Zeilen
+                    self._schedule_send(
+                        self.callback_handler._send_log(
+                            self.event_type_prefix,
+                            line.strip(),
+                            is_raw_crewai_output=True,
+                        )
                     )
         return len(s)
 
@@ -206,7 +226,11 @@ class WebSocketStream(io.StringIO):
         self.original_stdout.flush()
         # Sende verbleibenden Pufferinhalt, falls vorhanden und nicht mit Newline endet
         if self.line_buffer.strip():
-            asyncio.create_task(
-                self.callback_handler._send_log(self.event_type_prefix, self.line_buffer.strip(), is_raw_crewai_output=True)
+            self._schedule_send(
+                self.callback_handler._send_log(
+                    self.event_type_prefix,
+                    self.line_buffer.strip(),
+                    is_raw_crewai_output=True,
+                )
             )
             self.line_buffer = ""
