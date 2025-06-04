@@ -15,8 +15,6 @@ import HowItWorksDialog from './howItWorksDialog';
 const MainContent = () => {
   const theme = useTheme();
   // Beibehaltene States aus deinem Code-Snippet
-  const [repo, setRepo] = useState('leonleidner/CSS-JS-Image-Hover-Ef'); // Beispiel-Repo, falls noch genutzt
-  const [branch, setBranch] = useState('main'); // Beispiel-Branch, falls noch genutzt
   const [taskInput, setTaskInput] = useState('');
 
   // States für LLM/CrewAI Interaktion und Logs
@@ -29,6 +27,14 @@ const MainContent = () => {
 
   // State für den "How it works"-Dialog
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
+
+  const handleOpenHowItWorks = () => {
+    setHowItWorksOpen(true);
+  };
+
+  const handleCloseHowItWorks = () => {
+    setHowItWorksOpen(false);
+  };
 
   const ws = useRef(null); // Ref für das WebSocket-Objekt
   const logsEndRef = useRef(null); // Ref zum automatischen Scrollen der Logs
