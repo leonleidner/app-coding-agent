@@ -26,7 +26,7 @@ import { useTheme } from '@mui/material/styles';
 
 const Sidebar = ({ isOpen, toggleSidebar, width }) => {
   const theme = useTheme();
-  const [isCodebasesExpanded, setIsCodebasesExpanded] = useState(true); // Standardmäßig geöffnet
+  const [isCodebasesExpanded, setIsCodebasesExpanded] = useState(false); // Standardmäßig geöffnet
 
   const handleHistoryClick = () => {
     console.log("History button clicked");

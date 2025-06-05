@@ -9,7 +9,7 @@ export const EXPANDED_SIDEBAR_WIDTH = 280;
 export const COLLAPSED_SIDEBAR_WIDTH = 70; // Oder welche Breite deine zugeklappte Sidebar hat
 
 function App() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const theme = useTheme();
 
   const toggleSidebar = () => {
