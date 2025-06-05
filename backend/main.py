@@ -204,15 +204,13 @@ async def start_crew_task_endpoint(request_data: StartTaskRequest, background_ta
         # Die folgenden sind wichtig, wenn deine Agenten-Goals/Tasks diese Platzhalter verwenden
         "dataset_description": request_data.user_dataset_description,
         "project_goal": request_data.user_project_goal,
-        # Die folgenden Platzhalter sind eher für sequenzielle Logik gedacht und
-        # werden in CrewAI durch den internen Datenfluss gefüllt. Für den initialen
-        # Kickoff sind sie meist nicht nötig und können entfernt werden, es sei denn,
-        # dein allererster Task oder Agenten-Goal braucht sie explizit.
-        # "input_data_summary": "Rohdaten werden vom Data Gatherer bereitgestellt.",
-        # "cleaned_data_summary": "Bereinigte Daten werden vom Data Cleaner bereitgestellt.",
-        # "eda_insights": "EDA Ergebnisse werden vom EDA Agent bereitgestellt.",
-        # "model_details_and_performance": "Modellergebnisse werden vom Modeling Agent bereitgestellt.",
-        # "gathered_data_summary": "Details zur Datensammlung werden vom Data Gatherer bereitgestellt."
+        # Platzhalter für Agenten, die sequenziell Ergebnisse austauschen. Standardwerte
+        # verhindern KeyError, wenn spätere Agenten ihre Eingaben interpolieren.
+        "input_data_summary": "Rohdaten werden vom Data Gatherer bereitgestellt.",
+        "cleaned_data_summary": "Bereinigte Daten werden vom Data Cleaner bereitgestellt.",
+        "eda_insights": "EDA Ergebnisse werden vom EDA Agent bereitgestellt.",
+        "model_details_and_performance": "Modellergebnisse werden vom Modeling Agent bereitgestellt.",
+        "gathered_data_summary": "Details zur Datensammlung werden vom Data Gatherer bereitgestellt."
     }
 
     background_tasks.add_task(
