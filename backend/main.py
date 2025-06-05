@@ -1,12 +1,21 @@
 # coding_agent_backend/main.py
 import asyncio
 import uuid
-import sys # Für stdout Umleitung
-import io  # Für StringIO als Basis für unseren Stream
-import traceback # Für detaillierte Fehlerausgaben
-import logging # Für strukturiertes Logging
+import sys  # Für stdout Umleitung
+import io   # Für StringIO als Basis für unseren Stream
+import traceback  # Für detaillierte Fehlerausgaben
+import logging  # Für strukturiertes Logging
+import os
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks, HTTPException
+from fastapi import (
+    FastAPI,
+    WebSocket,
+    WebSocketDisconnect,
+    BackgroundTasks,
+    HTTPException,
+    UploadFile,
+    File,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
@@ -23,6 +32,10 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+
+# Directory for uploaded CSV files
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Importiere Konfigurationen und Komponenten
 from llm_config import manager_llm as global_manager_llm # get_dynamic_llm für Worker
@@ -105,6 +118,7 @@ class StartTaskRequest(BaseModel):
     model_name: str
     user_dataset_description: Optional[str] = "Keine spezifische Dataset-Beschreibung angegeben."
     user_project_goal: Optional[str] = "Allgemeine Analyse durchführen."
+    dataset_path: Optional[str] = None
 
 # --- Asynchrone Crew Ausführung ---
 async def run_crew_asynchronously(
@@ -192,6 +206,15 @@ async def run_crew_asynchronously(
         await connection_manager.close_connections_for_task(task_id)
 
 # --- API Endpunkte ---
+
+@app.post("/api/upload_csv")
+async def upload_csv(file: UploadFile = File(...)):
+    """Receive a CSV file upload and store it on the server."""
+    file_location = os.path.join(UPLOAD_DIR, file.filename)
+    with open(file_location, "wb") as f:
+        f.write(await file.read())
+    return {"file_path": file_location}
+
 @app.post("/api/start_crew_task")
 async def start_crew_task_endpoint(request_data: StartTaskRequest, background_tasks: BackgroundTasks): # Umbenannt, um Konflikt mit importiertem Task zu vermeiden
     task_id = str(uuid.uuid4())
@@ -203,6 +226,7 @@ async def start_crew_task_endpoint(request_data: StartTaskRequest, background_ta
         "user_raw_query": request_data.task,
         # Die folgenden sind wichtig, wenn deine Agenten-Goals/Tasks diese Platzhalter verwenden
         "dataset_description": request_data.user_dataset_description,
+        "dataset_path": request_data.dataset_path or "",
         "project_goal": request_data.user_project_goal,
         # Platzhalter für Agenten, die sequenziell Ergebnisse austauschen. Standardwerte
         # verhindern KeyError, wenn spätere Agenten ihre Eingaben interpolieren.
