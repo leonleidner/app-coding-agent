@@ -10,18 +10,18 @@ logger = logging.getLogger(__name__)
 google_api_key = os.getenv("GOOGLE_API_KEY")
 
 #openrouter_api_base = os.getenv("OPENROUTER_API_BASE", "https://openrouter.ai/api/v1")
-OPENAI_API_KEY="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"
+
 # Standard LLM für die Worker-Agenten, konfiguriert für OpenRouter
 default_llm = LLM(
     model="openrouter/deepseek/deepseek-chat-v3-0324:free",
-    api_key=OPENAI_API_KEY,
+    api_key=os.environ['OPENAI_API_KEY'],
     temperature=0.3,
 )
 
 # LLM für den Manager der Crew, konfiguriert für OpenRouter
 manager_llm = LLM(
     model="openrouter/deepseek/deepseek-chat-v3-0324:free",
-    api_key=OPENAI_API_KEY,
+    api_key=os.environ['OPENAI_API_KEY'],
     temperature=0.1,
 )
 
