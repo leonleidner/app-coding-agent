@@ -36,10 +36,11 @@ logger = logging.getLogger(__name__)
 # Directory for uploaded CSV files
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+LATEST_UPLOADED_DATASET: Optional[str] = None
 
 # Importiere Konfigurationen und Komponenten
 from llm_config import manager_llm as global_manager_llm # get_dynamic_llm für Worker
-from agents import list_of_all_agents, lead_data_scientist # Importiere auch den Manager-Agenten für Vergleiche
+from agents import list_of_all_agents, lead_data_scientist, all_worker_agents # Importiere auch den Manager-Agenten für Vergleiche
 from tasks import data_science_project_task
 # Stelle sicher, dass WebSocketStream auch importiert wird, falls es in callback_handler.py ist
 from callback_handler import WebSocketCallbackHandler, WebSocketStream
@@ -151,12 +152,13 @@ async def run_crew_asynchronously(
 
 
     data_science_crew = Crew(
-        agents=current_run_agents,
-        tasks=[data_science_project_task],
-        process=Process.hierarchical,
-        manager_llm=global_manager_llm,
-        verbose=True, # Ermöglicht CrewAI's print() Ausgaben
-        callbacks=[custom_callback_handler]
+       agents=all_worker_agents,      # only coworkers
+       tasks=[data_science_project_task],
+       manager_agent=lead_data_scientist,
+       process=Process.hierarchical,
+       manager_llm=global_manager_llm,
+       verbose=True,
+       callbacks=[custom_callback_handler],
     )
 
     original_stdout = sys.stdout
@@ -213,6 +215,7 @@ async def upload_csv(file: UploadFile = File(...)):
     file_location = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_location, "wb") as f:
         f.write(await file.read())
+    LATEST_UPLOADED_DATASET = file_location
     return {"file_path": file_location}
 
 @app.post("/api/start_crew_task")
@@ -220,13 +223,14 @@ async def start_crew_task_endpoint(request_data: StartTaskRequest, background_ta
     task_id = str(uuid.uuid4())
     logger.info(f"Neue Aufgabe gestartet: Task ID {task_id}, User Task: '{request_data.task}', Modell: {request_data.model_name}")
 
+    dataset_path = request_data.dataset_path or LATEST_UPLOADED_DATASET or ""
     crew_inputs = {
         "user_dataset_description": request_data.user_dataset_description,
         "user_project_goal": request_data.user_project_goal,
         "user_raw_query": request_data.task,
         # Die folgenden sind wichtig, wenn deine Agenten-Goals/Tasks diese Platzhalter verwenden
         "dataset_description": request_data.user_dataset_description,
-        "dataset_path": request_data.dataset_path or "",
+        "dataset_path": dataset_path,
         "project_goal": request_data.user_project_goal,
         # Platzhalter für Agenten, die sequenziell Ergebnisse austauschen. Standardwerte
         # verhindern KeyError, wenn spätere Agenten ihre Eingaben interpolieren.

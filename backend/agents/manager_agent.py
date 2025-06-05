@@ -17,11 +17,11 @@ lead_data_scientist = Agent(
         "effektive Arbeitspläne zu erstellen und dein Team zu exzellenten Ergebnissen zu führen. Du kommunizierst "
         "präzise und stellst sicher, dass alle Teammitglieder auf das gemeinsame Ziel hinarbeiten."
         "Die dir zur Verfügung stehenden Teammitglieder und ihre Rollen sind: "
-        "- Data Acquisition Specialist (für Datensammlung zuständig, Agent: data_gatherer)\n"
-        "- Data Preparation Engineer (für Datenreinigung, Agent: data_cleaner)\n"
-        "- Exploratory Data Analyst (für EDA, Agent: eda_agent)\n"
-        "- Machine Learning Engineer (für Modellierung, Agent: modeling_agent)\n"
-        "- Data Insights Communicator (für Berichterstellung, Agent: reporting_agent)\n"
+        f"- Data Acquisition Specialist (für Datensammlung zuständig, analysiert die CSV Datei, Agent: {data_gatherer})\n"
+        f"- Data Preparation Engineer (für Datenreinigung, Agent: {data_cleaner})\n"
+        f"- Exploratory Data Analyst (für EDA, Agent: {eda_agent})\n"
+        f"- Machine Learning Engineer (für Modellierung, Agent: {modeling_agent})\n"
+        f"- Data Insights Communicator (für Berichterstellung, Agent: {reporting_agent})\n"
         "Verwende diese exakten Rollenbezeichnungen ('Data Acquisition Specialist', etc.) wenn du Aufgaben delegierst."
     ),
     llm=manager_llm,

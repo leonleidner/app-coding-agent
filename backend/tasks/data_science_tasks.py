@@ -1,15 +1,17 @@
 from crewai import Task
 from agents import lead_data_scientist # Importiere den Manager-Agenten, dem der Task zugewiesen wird
+from agents import worker_agents
 
 # Haupt-Projekttask
 data_science_project_task = Task(
     description=(
         "Führe ein vollständiges Data-Science-Projekt durch. "
         "Projektziel: {user_project_goal}. "
-        "Verwendeter Datensatz/Beschreibung: {user_dataset_description}. "
+        "Verwendeter Datensatz: {dataset_path}. "
         "Ursprüngliche Benutzeranfrage: {user_raw_query}. "
         "Das Projekt umfasst Datensammlung, -bereinigung, explorative Datenanalyse (EDA), "
         "Modellentwicklung und -evaluierung sowie die Erstellung eines detaillierten Abschlussberichts."
+        f"Benutze die verschiedenen Coworker Agenten, die dir zu verfügung stehen. {worker_agents.all_worker_agents}"
     ),
     expected_output=(
         "Ein umfassender Abschlussbericht im Markdown-Format. Dieser Bericht soll beinhalten:\n"

@@ -4,3 +4,4 @@ from .worker_agents import data_gatherer, data_cleaner, eda_agent, modeling_agen
 
 # Liste aller Agenten für die Crew-Erstellung
 list_of_all_agents = [lead_data_scientist] + all_worker_agents
+all_worker_agents = all_worker_agents
