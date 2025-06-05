@@ -4,7 +4,7 @@ from .worker_agents import data_gatherer, data_cleaner, eda_agent, modeling_agen
 
 
 lead_data_scientist = Agent(
-    role='Lead Data Scientist and Project Manager',
+    role='Project Manager',
     goal=(
         "Koordiniere und leite ein Team von KI-Spezialisten, um das Data-Science-Projekt {project_goal} "
         "mit dem Datensatz {dataset_description} erfolgreich abzuschließen. Zerlege die Hauptaufgabe in "

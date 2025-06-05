@@ -24,6 +24,8 @@ const MainContent = () => {
   const [error, setError] = useState(null);
   const [selectedModel, setSelectedModel] = useState('deepseek/deepseek-chat-v3-0324:free'); // Dein Standardmodell
   const [currentTaskId, setCurrentTaskId] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadedPath, setUploadedPath] = useState('');
 
   // State für den "How it works"-Dialog
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
@@ -59,6 +61,28 @@ const MainContent = () => {
     setTaskInput(event.target.value);
   };
 
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    const resp = await fetch('http://localhost:8000/api/upload_csv', {
+      method: 'POST',
+      body: formData,
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      setUploadedPath(data.file_path);
+    } else {
+      setError('Fehler beim Hochladen der Datei');
+    }
+  };
+
   const handleAskCodingAgent = async () => {
     if (!taskInput.trim()) {
       setError("Bitte gib eine Aufgabe ein.");
@@ -77,12 +101,16 @@ const MainContent = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/start_crew_task', { // Neuer Endpunkt
+      const response = await fetch('http://localhost:8000/api/start_crew_task', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ task: taskInput, model_name: selectedModel }),
+        body: JSON.stringify({
+          task: taskInput,
+          model_name: selectedModel,
+          dataset_path: uploadedPath,
+        }),
       });
 
       if (!response.ok) {
@@ -200,6 +228,29 @@ const MainContent = () => {
             },
           }}
         />
+
+        <input
+          id="csv-upload"
+          type="file"
+          accept=".csv"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+          <Button variant="outlined" onClick={() => document.getElementById('csv-upload').click()}>
+            Choose CSV
+          </Button>
+          {selectedFile && (
+            <Button variant="contained" onClick={handleUpload} disabled={isLoading}>
+              Upload
+            </Button>
+          )}
+        </Stack>
+        {uploadedPath && (
+          <Typography variant="caption" sx={{ mb: 1 }}>
+            Hochgeladen: {uploadedPath}
+          </Typography>
+        )}
 
         <Button
           variant="contained"

@@ -1,15 +1,15 @@
 # coding_agent_backend/agents/worker_agents.py
 from crewai import Agent
 from llm_config import default_llm # Nutzen das Standard-LLM
-from tools import python_repl, load_dataset # Importiere die benötigten Tools
+from tools import python_repl, load_dataset, analyze_csv  # Importiere die benötigten Tools
 
 # 1. Data Gatherer Agent
 data_gatherer = Agent(
     role='Data Acquisition Specialist',
-    goal="Sammle, validiere und dokumentiere alle notwendigen Daten aus den spezifizierten Quellen für das Projekt '{project_goal}' unter Verwendung des Datensatzes '{dataset_description}'.",
+    goal="Sammle, validiere und dokumentiere die Daten aus der bereitgestellten CSV-Datei '{dataset_path}' für das Projekt '{project_goal}'. Beschreibung: {dataset_description}",
     backstory="Als Datensammler-Experte bist du darauf spezialisiert, relevante und qualitativ hochwertige Daten zu identifizieren und zu beschaffen. Du kennst dich mit verschiedenen Datenquellen aus und stellst sicher, dass die Datenbasis für die Analyse vollständig und korrekt ist.",
     llm=default_llm,
-    tools=[load_dataset], # Beispiel-Tool
+    tools=[load_dataset, analyze_csv],
     allow_delegation=False,
     verbose=True
 )
@@ -20,7 +20,7 @@ data_cleaner = Agent(
     goal="Bereinige und transformiere die Rohdaten ({input_data_summary}) sorgfältig, um sie für die nachfolgende Analyse und Modellierung im Rahmen des Projekts '{project_goal}' optimal vorzubereiten. Konzentriere dich auf fehlende Werte, Datentypen, Duplikate und Ausreißer.",
     backstory="Du bist ein Detail-orientierter Ingenieur für Datenaufbereitung. Deine Aufgabe ist es, aus unstrukturierten Rohdaten einen sauberen, konsistenten und zuverlässigen Datensatz zu erstellen, der als solide Grundlage für alle weiteren Data-Science-Schritte dient.",
     llm=default_llm,
-    tools=[python_repl],
+    tools=[python_repl, analyze_csv],
     allow_delegation=False,
     verbose=True
 )
@@ -31,7 +31,7 @@ eda_agent = Agent(
     goal="Führe eine tiefgreifende explorative Datenanalyse der vorbereiteten Daten ({cleaned_data_summary}) durch. Identifiziere Muster, Trends, Korrelationen und Anomalien. Erstelle aussagekräftige Visualisierungen und formuliere erste Hypothesen für das Projekt '{project_goal}'.",
     backstory="Mit deiner analytischen Schärfe und deinem Gespür für Datenmuster deckst du verborgene Einsichten auf. Du verwandelst Zahlen in Geschichten und bereitest den Weg für fundierte Modellentscheidungen.",
     llm=default_llm,
-    tools=[python_repl],
+    tools=[python_repl, analyze_csv],
     allow_delegation=False,
     verbose=True
 )
