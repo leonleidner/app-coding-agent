@@ -12,7 +12,7 @@ import { useTheme } from '@mui/material/styles';
 // Importiere die ausgelagerte Dialog-Komponente
 import HowItWorksDialog from './howItWorksDialog';
 
-const MainContent = () => {
+const MainContent = ({ datasetPath, setDatasetPath }) => {
   const theme = useTheme();
   // Beibehaltene States aus deinem Code-Snippet
   const [taskInput, setTaskInput] = useState('');
@@ -25,7 +25,6 @@ const MainContent = () => {
   const [selectedModel, setSelectedModel] = useState('deepseek/deepseek-chat-v3-0324:free'); // Dein Standardmodell
   const [currentTaskId, setCurrentTaskId] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [uploadedPath, setUploadedPath] = useState('');
 
   // State für den "How it works"-Dialog
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
@@ -77,7 +76,7 @@ const MainContent = () => {
     });
     if (resp.ok) {
       const data = await resp.json();
-      setUploadedPath(data.file_path);
+      setDatasetPath(data.file_path);
     } else {
       setError('Fehler beim Hochladen der Datei');
     }
@@ -109,7 +108,7 @@ const MainContent = () => {
         body: JSON.stringify({
           task: taskInput,
           model_name: selectedModel,
-          dataset_path: uploadedPath,
+          dataset_path: datasetPath,
         }),
       });
 
@@ -246,9 +245,9 @@ const MainContent = () => {
             </Button>
           )}
         </Stack>
-        {uploadedPath && (
+        {datasetPath && (
           <Typography variant="caption" sx={{ mb: 1 }}>
-            Hochgeladen: {uploadedPath}
+            Hochgeladen: {datasetPath}
           </Typography>
         )}
 

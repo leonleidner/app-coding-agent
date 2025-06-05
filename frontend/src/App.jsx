@@ -10,6 +10,7 @@ export const COLLAPSED_SIDEBAR_WIDTH = 70; // Oder welche Breite deine zugeklapp
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [datasetPath, setDatasetPath] = useState('');
   const theme = useTheme();
 
   const toggleSidebar = () => {
@@ -26,6 +27,7 @@ function App() {
           isOpen={isSidebarOpen}
           toggleSidebar={toggleSidebar}
           width={currentSidebarWidth}
+          onSelectDataset={setDatasetPath}
         />
         <Box
           component="main"
@@ -43,7 +45,7 @@ function App() {
             boxSizing: 'border-box', // Damit Padding in width/height eingerechnet wird
           }}
         >
-          <MainContent />
+          <MainContent datasetPath={datasetPath} setDatasetPath={setDatasetPath} />
         </Box>
       </Box>
     </ThemeProvider>

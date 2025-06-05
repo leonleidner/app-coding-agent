@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -24,18 +24,34 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { useTheme } from '@mui/material/styles';
 
-const Sidebar = ({ isOpen, toggleSidebar, width }) => {
+const Sidebar = ({ isOpen, toggleSidebar, width, onSelectDataset }) => {
   const theme = useTheme();
-  const [isCodebasesExpanded, setIsCodebasesExpanded] = useState(false); // Standardmäßig geöffnet
+  const [isDatasetsExpanded, setIsDatasetsExpanded] = useState(false); // Standardmäßig geschlossen
+  const [datasets, setDatasets] = useState([]);
+
+  useEffect(() => {
+    const fetchDatasets = async () => {
+      try {
+        const resp = await fetch('http://localhost:8000/api/datasets');
+        if (resp.ok) {
+          const data = await resp.json();
+          setDatasets(data.datasets || []);
+        }
+      } catch (err) {
+        console.error('Fehler beim Laden der Datasets', err);
+      }
+    };
+    fetchDatasets();
+  }, []);
 
   const handleHistoryClick = () => {
     console.log("History button clicked");
     // Hier deine Logik für den History-Button
   };
 
-  const handleCodebasesToggle = () => {
+  const handleDatasetsToggle = () => {
     if (isOpen) {
-      setIsCodebasesExpanded(!isCodebasesExpanded);
+      setIsDatasetsExpanded(!isDatasetsExpanded);
     }
   };
   
@@ -139,11 +155,11 @@ const Sidebar = ({ isOpen, toggleSidebar, width }) => {
           )}
         </ListItem>
 
-        {/* Codebases Accordion */}
+        {/* Datasets Accordion */}
         <Accordion
-          expanded={isOpen && isCodebasesExpanded}
+          expanded={isOpen && isDatasetsExpanded}
           disabled={!isOpen}
-          onChange={handleCodebasesToggle}
+          onChange={handleDatasetsToggle}
           sx={{
             backgroundImage: 'none',
             boxShadow: 'none',
@@ -160,8 +176,8 @@ const Sidebar = ({ isOpen, toggleSidebar, width }) => {
         >
           <AccordionSummary
             expandIcon={isOpen ? <ExpandMoreIcon /> : null}
-            aria-controls="codebases-content"
-            id="codebases-header"
+            aria-controls="datasets-content"
+            id="datasets-header"
             sx={{
               flexDirection: isOpen ? 'row-reverse' : 'column',
               padding: theme.spacing(0.5, isOpen ? 2 : 0.5),
@@ -190,37 +206,47 @@ const Sidebar = ({ isOpen, toggleSidebar, width }) => {
               })
             }}
           >
-            <Tooltip title={isOpen ? "" : "Codebases"} placement="right">
+            <Tooltip title={isOpen ? "" : "Datasets"} placement="right">
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: !isOpen ? theme.spacing(0.5) : 0 }}>
                 <FolderIcon
                   fontSize="small"
-                  sx={{ color: !isOpen && !isCodebasesExpanded ? theme.palette.text.primary : theme.palette.action.active }}
+                  sx={{ color: !isOpen && !isDatasetsExpanded ? theme.palette.text.primary : theme.palette.action.active }}
                 />
               </Box>
             </Tooltip>
             {isOpen && (
               <Typography variant="subtitle2" sx={{ fontWeight: 'medium', whiteSpace: 'nowrap', ml: isOpen ? 1: 0 }}>
-                Codebases
+                Datasets
               </Typography>
             )}
           </AccordionSummary>
           {isOpen && ( // Details nur rendern wenn Sidebar offen ist, expanded wird vom Accordion gehandhabt
             <AccordionDetails sx={{ padding: 0 }}>
               <List dense>
-                {['leonleidner/CSS-JS-Image...', 'leonleidner/Fincrawl', 'leonleidner/StockSeason'].map((text) => (
+                {datasets.map((ds) => (
                   <ListItem
                     button
-                    key={text}
+                    key={ds.path}
                     secondaryAction={
                       isOpen ? (
-                        <IconButton edge="end" aria-label="add" size="small">
+                        <IconButton
+                          edge="end"
+                          aria-label="add"
+                          size="small"
+                          onClick={() => onSelectDataset && onSelectDataset(ds.path)}
+                        >
                           <AddIcon fontSize="small" />
                         </IconButton>
                       ) : null
                     }
                     sx={{ ...commonListItemStyle }}
                   >
-                    {isOpen && <ListItemText primary={text} sx={{ opacity: isOpen ? 1 : 0, whiteSpace: 'nowrap' }} />}
+                    {isOpen && (
+                      <ListItemText
+                        primary={ds.name}
+                        sx={{ opacity: isOpen ? 1 : 0, whiteSpace: 'nowrap' }}
+                      />
+                    )}
                   </ListItem>
                 ))}
               </List>

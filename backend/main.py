@@ -197,6 +197,16 @@ async def upload_csv(file: UploadFile = File(...)):
     LATEST_UPLOADED_DATASET = file_location
     return {"file_path": file_location}
 
+@app.get("/api/datasets")
+async def list_datasets():
+    """Return dataset names and full paths from the uploads directory."""
+    datasets = [
+        {"name": f, "path": os.path.join(UPLOAD_DIR, f)}
+        for f in os.listdir(UPLOAD_DIR)
+        if os.path.isfile(os.path.join(UPLOAD_DIR, f))
+    ]
+    return {"datasets": datasets}
+
 @app.post("/api/start_crew_task")
 async def start_crew_task_endpoint(request_data: StartTaskRequest, background_tasks: BackgroundTasks): # Umbenannt, um Konflikt mit importiertem Task zu vermeiden
     task_id = str(uuid.uuid4())
