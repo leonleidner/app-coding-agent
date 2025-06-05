@@ -59,6 +59,13 @@ reporting_agent = Agent(
 )
 
 # Sammle alle Worker-Agenten für den einfachen Import
+all_worker_agents_role = [
+    data_gatherer.role,
+    data_cleaner.role,
+    eda_agent.role,
+    modeling_agent.role,
+    reporting_agent.role
+]
 all_worker_agents = [
     data_gatherer,
     data_cleaner,

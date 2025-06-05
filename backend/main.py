@@ -12,7 +12,6 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
     BackgroundTasks,
-    HTTPException,
     UploadFile,
     File,
 )
@@ -40,7 +39,7 @@ LATEST_UPLOADED_DATASET: Optional[str] = None
 
 # Importiere Konfigurationen und Komponenten
 from llm_config import manager_llm as global_manager_llm # get_dynamic_llm für Worker
-from agents import list_of_all_agents, lead_data_scientist, all_worker_agents # Importiere auch den Manager-Agenten für Vergleiche
+from agents import lead_data_scientist, all_worker_agents, list_of_all_agents # Importiere auch den Manager-Agenten für Vergleiche
 from tasks import data_science_project_task
 # Stelle sicher, dass WebSocketStream auch importiert wird, falls es in callback_handler.py ist
 from callback_handler import WebSocketCallbackHandler, WebSocketStream
@@ -132,29 +131,9 @@ async def run_crew_asynchronously(
 
     custom_callback_handler = WebSocketCallbackHandler(websocket_manager=connection_manager, task_id=task_id)
 
-    current_run_agents = []
-    for agent_template in list_of_all_agents:
-        if agent_template.role == lead_data_scientist.role:
-            current_run_agents.append(agent_template)
-        else:
-            # Erstelle hier eine NEUE Instanz oder tiefe Kopie des Agenten
-            # und weise das worker_llm_instance zu.
-            # Beispiel: Annahme, Agenten sind Klassen oder haben eine Methode zum Setzen des LLM
-            # import copy # Am Anfang der Datei
-            # worker_agent = copy.deepcopy(agent_template)
-            # worker_agent.llm = worker_llm_instance
-            # current_run_agents.append(worker_agent)
-            
-            # Sicherste Variante: Agenten-Erstellungsfunktionen verwenden (nicht hier gezeigt)
-            # Für dieses Beispiel vereinfacht (kann bei globalen Objekten zu Problemen führen,
-            # aber CrewAI erstellt oft interne Kopien):
-            current_run_agents.append(agent_template)
-
-
     data_science_crew = Crew(
-       agents=all_worker_agents,      # only coworkers
+       agents=list_of_all_agents,      # only coworkers
        tasks=[data_science_project_task],
-       manager_agent=lead_data_scientist,
        process=Process.hierarchical,
        manager_llm=global_manager_llm,
        verbose=True,

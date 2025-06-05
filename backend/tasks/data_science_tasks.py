@@ -11,7 +11,7 @@ data_science_project_task = Task(
         "Ursprüngliche Benutzeranfrage: {user_raw_query}. "
         "Das Projekt umfasst Datensammlung, -bereinigung, explorative Datenanalyse (EDA), "
         "Modellentwicklung und -evaluierung sowie die Erstellung eines detaillierten Abschlussberichts."
-        f"Benutze die verschiedenen Coworker Agenten, die dir zu verfügung stehen. {worker_agents.all_worker_agents}"
+        f"Benutze die verschiedenen Coworker Agenten, die dir zu verfügung stehen. {worker_agents.all_worker_agents_role}"
     ),
     expected_output=(
         "Ein umfassender Abschlussbericht im Markdown-Format. Dieser Bericht soll beinhalten:\n"
