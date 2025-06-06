@@ -39,8 +39,8 @@ LATEST_UPLOADED_DATASET: Optional[str] = None
 
 # Importiere Konfigurationen und Komponenten
 from llm_config import manager_llm as global_manager_llm # get_dynamic_llm für Worker
-from agents import lead_data_scientist, all_worker_agents, list_of_all_agents # Importiere auch den Manager-Agenten für Vergleiche
-from tasks import data_science_project_task
+from agents import managerAgent, WorkerAgents # Importiere auch den Manager-Agenten für Vergleiche
+from tasks import data_science_tasks
 # Stelle sicher, dass WebSocketStream auch importiert wird, falls es in callback_handler.py ist
 from callback_handler import WebSocketCallbackHandler, WebSocketStream
 from crewai import Crew, Process
@@ -130,10 +130,28 @@ async def run_crew_asynchronously(
     logger.info(f"Starte Crew für Task {task_id} mit Inputs: {user_inputs} und Worker-Modell: {selected_model_from_frontend}")
 
     custom_callback_handler = WebSocketCallbackHandler(websocket_manager=connection_manager, task_id=task_id)
+    ##Agents
+    lead_data_scientist = managerAgent().lead_data_scientist()
+    data_gatherer = WorkerAgents().data_gatherer()
+    data_cleaner = WorkerAgents().data_cleaner()
+    eda_agent = WorkerAgents().eda_agent()
+    modeling_agent = WorkerAgents().modeling_agent()
+    reporting_agent = WorkerAgents().reporting_agent()
+
+    ##Tasks
+    tasks = data_science_tasks()
+    data_science_project_task = tasks.data_science_project_task(lead_data_scientist)
+    data_gather_task = tasks.data_gather_task(data_gatherer, [data_science_project_task])
+    data_clean_task = tasks.data_clean_task(data_cleaner, [data_gather_task])
+    eda_task = tasks.eda_task(eda_agent, [data_clean_task])
+    modeling_task = tasks.modeling_task(modeling_agent, [eda_task])
+    reporting_task = tasks.reporting_task(reporting_agent, [eda_task, modeling_task])
+
 
     data_science_crew = Crew(
-       agents=list_of_all_agents,      # only coworkers
-       tasks=[data_science_project_task],
+       agents=[data_gatherer, data_cleaner, eda_agent, modeling_agent, reporting_agent],      # only coworkers
+       tasks=[data_science_project_task, data_gather_task, data_clean_task, eda_task, modeling_task, reporting_task],
+       manager_agent=lead_data_scientist,
        process=Process.hierarchical,
        manager_llm=global_manager_llm,
        verbose=True,
