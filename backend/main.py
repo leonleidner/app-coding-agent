@@ -149,9 +149,8 @@ async def run_crew_asynchronously(
 
 
     data_science_crew = Crew(
-       agents=[data_gatherer, data_cleaner, eda_agent, modeling_agent, reporting_agent],      # only coworkers
+       agents=[lead_data_scientist, data_gatherer, data_cleaner, eda_agent, modeling_agent, reporting_agent],      # only coworkers
        tasks=[data_science_project_task, data_gather_task, data_clean_task, eda_task, modeling_task, reporting_task],
-       manager_agent=lead_data_scientist,
        process=Process.hierarchical,
        manager_llm=global_manager_llm,
        verbose=True,
