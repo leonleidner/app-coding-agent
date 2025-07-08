@@ -46,7 +46,7 @@ const Sidebar = ({ isOpen, toggleSidebar, width, onSelectDataset }) => {
 
   const handleHistoryClick = () => {
     console.log("History button clicked");
-    // Hier deine Logik für den History-Button
+    // Hier die Logik für den History-Button
   };
 
   const handleDatasetsToggle = () => {
@@ -91,7 +91,7 @@ const Sidebar = ({ isOpen, toggleSidebar, width, onSelectDataset }) => {
       }}>
         {isOpen && (
           <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-            Coding Agent <span style={{ color: theme.palette.text.secondary, fontSize: '0.8em' }}>beta</span>
+            Data Agent <span style={{ color: theme.palette.text.secondary, fontSize: '0.8em' }}>beta</span>
           </Typography>
         )}
         <IconButton onClick={toggleSidebar} color="inherit" aria-label={isOpen ? "Sidebar schließen" : "Sidebar öffnen"} sx={{

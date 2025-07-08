@@ -24,9 +24,8 @@ from dotenv import load_dotenv
 # Lade Umgebungsvariablen (z.B. API Keys)
 load_dotenv()
 
-# Logging konfigurieren (ganz am Anfang, nach den Imports)
 logging.basicConfig(
-    level=logging.INFO, # Setze auf logging.DEBUG für noch mehr Details
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - [%(funcName)s] - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -38,7 +37,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 LATEST_UPLOADED_DATASET: Optional[str] = None
 
 # Importiere Konfigurationen und Komponenten
-from llm_config import manager_llm as global_manager_llm # get_dynamic_llm für Worker
+from llm_config import manager_llm as global_manager_llm, google_api_key # get_dynamic_llm für Worker
 from agents import managerAgent, WorkerAgents # Importiere auch den Manager-Agenten für Vergleiche
 from tasks import data_science_tasks
 # Stelle sicher, dass WebSocketStream auch importiert wird, falls es in callback_handler.py ist
@@ -112,6 +111,9 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# Mapping of running task IDs to asyncio tasks for cancellation
+RUNNING_TASKS: Dict[str, asyncio.Task] = {}
+
 # Pydantic-Modell für den Request-Body
 class StartTaskRequest(BaseModel):
     task: str
@@ -128,11 +130,10 @@ async def run_crew_asynchronously(
     connection_manager: ConnectionManager # ConnectionManager Instanz übergeben
 ):
     logger.info(f"Starte Crew für Task {task_id} mit Inputs: {user_inputs} und Worker-Modell: {selected_model_from_frontend}")
-
     custom_callback_handler = WebSocketCallbackHandler(websocket_manager=connection_manager, task_id=task_id)
     ##Agents
     lead_data_scientist = managerAgent().lead_data_scientist()
-    data_gatherer = WorkerAgents().data_gatherer()
+    data_gatherer = WorkerAgents().data_gatherer(LATEST_UPLOADED_DATASET)
     data_cleaner = WorkerAgents().data_cleaner()
     eda_agent = WorkerAgents().eda_agent()
     modeling_agent = WorkerAgents().modeling_agent()
@@ -145,16 +146,29 @@ async def run_crew_asynchronously(
     data_clean_task = tasks.data_clean_task(data_cleaner, [data_gather_task])
     eda_task = tasks.eda_task(eda_agent, [data_clean_task])
     modeling_task = tasks.modeling_task(modeling_agent, [eda_task])
-    reporting_task = tasks.reporting_task(reporting_agent, [eda_task, modeling_task])
+    reporting_task = tasks.reporting_task(reporting_agent, [data_science_project_task])
 
 
     data_science_crew = Crew(
-       agents=[lead_data_scientist, data_gatherer, data_cleaner, eda_agent, modeling_agent, reporting_agent],      # only coworkers
-       tasks=[data_science_project_task, data_gather_task, data_clean_task, eda_task, modeling_task, reporting_task],
-       process=Process.hierarchical,
-       manager_llm=global_manager_llm,
-       verbose=True,
-       callbacks=[custom_callback_handler],
+        agents=[
+            lead_data_scientist,
+            reporting_agent
+        ],
+        tasks=[
+            data_science_project_task,
+            reporting_task
+        ],
+        process=Process.sequential,
+        embedder=dict(
+            provider="google",
+            config=dict(
+                model="gemini-embedding-exp-03-07",
+                api_key=google_api_key
+            )
+        ),
+        manager_llm=global_manager_llm,
+        verbose=True,
+        callbacks=[custom_callback_handler],
     )
 
     original_stdout = sys.stdout
@@ -180,8 +194,6 @@ async def run_crew_asynchronously(
         # Stelle sicher, dass final_result in ein JSON-kompatibles Format gebracht wird, falls es ein Objekt ist
         import json
         try:
-            # Versuche, es direkt zu serialisieren. Wenn es ein komplexes Objekt ist,
-            # musst du vielleicht nur bestimmte Teile davon nehmen.
             json_compatible_result = json.dumps({"result": final_result})
         except TypeError:
             json_compatible_result = json.dumps({"result": str(final_result)}) # Fallback auf String-Repräsentation
@@ -189,6 +201,14 @@ async def run_crew_asynchronously(
         await connection_manager.send_log_to_task(task_id, f"[FINAL_RESULT]{json_compatible_result}")
         logger.info(f"Crew für Task {task_id} beendet. Ergebnis (gekürzt): {str(final_result)[:200]}")
 
+    except asyncio.CancelledError:
+        if sys.stdout == ws_stream:
+            sys.stdout = original_stdout
+        ws_stream.flush()
+        await connection_manager.send_log_to_task(task_id, "[SYSTEM] Task cancelled by user.")
+        await connection_manager.send_log_to_task(task_id, "[FINAL_RESULT]{\"error\": \"cancelled\"}")
+        return
+    
     except Exception as e:
         if sys.stdout == ws_stream: # Nur wiederherstellen, wenn es noch umgeleitet ist
             sys.stdout = original_stdout
@@ -225,7 +245,7 @@ async def list_datasets():
     return {"datasets": datasets}
 
 @app.post("/api/start_crew_task")
-async def start_crew_task_endpoint(request_data: StartTaskRequest, background_tasks: BackgroundTasks): # Umbenannt, um Konflikt mit importiertem Task zu vermeiden
+async def start_crew_task_endpoint(request_data: StartTaskRequest): 
     task_id = str(uuid.uuid4())
     logger.info(f"Neue Aufgabe gestartet: Task ID {task_id}, User Task: '{request_data.task}', Modell: {request_data.model_name}")
 
@@ -240,22 +260,33 @@ async def start_crew_task_endpoint(request_data: StartTaskRequest, background_ta
         "project_goal": request_data.user_project_goal,
         # Platzhalter für Agenten, die sequenziell Ergebnisse austauschen. Standardwerte
         # verhindern KeyError, wenn spätere Agenten ihre Eingaben interpolieren.
-        "input_data_summary": "Rohdaten werden vom Data Gatherer bereitgestellt.",
-        "cleaned_data_summary": "Bereinigte Daten werden vom Data Cleaner bereitgestellt.",
-        "eda_insights": "EDA Ergebnisse werden vom EDA Agent bereitgestellt.",
-        "model_details_and_performance": "Modellergebnisse werden vom Modeling Agent bereitgestellt.",
-        "gathered_data_summary": "Details zur Datensammlung werden vom Data Gatherer bereitgestellt."
+        #"input_data_summary": "Rohdaten werden vom Data Gatherer bereitgestellt.",
+        #"cleaned_data_summary": "Bereinigte Daten werden vom Data Cleaner bereitgestellt.",
+        #"eda_insights": "EDA Ergebnisse werden vom EDA Agent bereitgestellt.",
+        #"model_details_and_performance": "Modellergebnisse werden vom Modeling Agent bereitgestellt.",
+        #"gathered_data_summary": "Details zur Datensammlung werden vom Data Gatherer bereitgestellt."
     }
 
-    background_tasks.add_task(
-        run_crew_asynchronously,
-        task_id,
-        crew_inputs,
-        request_data.model_name, # Modell für Worker
-        manager # Die ConnectionManager-Instanz
+    task = asyncio.create_task(
+        run_crew_asynchronously(
+            task_id,
+            crew_inputs,
+            request_data.model_name,
+            manager,
+        )
     )
+    RUNNING_TASKS[task_id] = task
 
     return {"message": "CrewAI Task gestartet", "task_id": task_id}
+
+@app.post("/api/cancel_task/{task_id}")
+async def cancel_task(task_id: str):
+    """Request cancellation of a running task."""
+    task = RUNNING_TASKS.get(task_id)
+    if task and not task.done():
+        task.cancel()
+        return {"message": f"Cancellation requested for {task_id}"}
+    return {"message": f"Task {task_id} not running"}
 
 @app.websocket("/ws/logs/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
@@ -263,8 +294,6 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
     try:
         while True:
             data = await websocket.receive_text()
-            # Optional: Auf Ping/Pong oder andere Client-Nachrichten reagieren
-            # logger.debug(f"Nachricht vom Client für Task {task_id}: {data}")
     except WebSocketDisconnect:
         logger.info(f"Client für Task {task_id} (WebSocket Endpoint) hat Verbindung getrennt.")
     except Exception as e:

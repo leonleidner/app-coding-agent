@@ -7,23 +7,17 @@ class data_science_tasks():
     def data_science_project_task(self, agent):
         return Task(
             description=(
-                "Führe ein vollständiges Data-Science-Projekt durch. "
                 "Projektziel: {user_project_goal}. "
                 "Verwendeter Datensatz: {dataset_path}. "
                 "Ursprüngliche Benutzeranfrage: {user_raw_query}. "
-                "Das Projekt umfasst Datensammlung, -bereinigung, explorative Datenanalyse (EDA), "
-                "Modellentwicklung und -evaluierung sowie die Erstellung eines detaillierten Abschlussberichts."
-                "Benutze die verschiedenen Coworker Agenten, die dir zu verfügung stehen."
+                "Erstelle einen Plan für den 'Data Insights Communicator' Agent, welcher dann ein Reporting in einer .ipynb Datei schreibt."
             ),
             expected_output=(
-                "Ein umfassender Abschlussbericht im Markdown-Format. Dieser Bericht soll beinhalten:\n"
+                "Ein umfassender Plan, was der 'Data Insights Communicator' Agent machen soll:\n"
                 "1. Zusammenfassung der Aufgabenstellung und der verwendeten Daten.\n"
-                "2. Detaillierte Beschreibung der Datenbereinigungsschritte.\n"
-                "3. Wichtigste Erkenntnisse und Visualisierungen aus der EDA.\n"
-                "4. Beschreibung des entwickelten Modells (Typ, Parameter, verwendete Features).\n"
-                "5. Evaluationsmetriken des Modells und Interpretation der Ergebnisse.\n"
-                "6. Beantwortung der ursprünglichen Fragestellung basierend auf der Analyse.\n"
-                "7. Konkrete Handlungsempfehlungen (falls zutreffend)."
+                "2. Detaillierte Beschreibung des Datasets mit visueller Darstellung. \n"
+                "3. Beantwortung der ursprünglichen Fragestellung basierend auf der Analyse.\n"
+                "4. Konkrete Handlungsempfehlungen (falls zutreffend)."
             ),
             agent=agent
         )
@@ -79,11 +73,10 @@ class data_science_tasks():
     def reporting_task(self, agent, context):
         return Task(
             description=(
-                "Erstelle einen umfassenden Bericht basierend auf {gathered_data_summary}, {cleaned_data_summary}, "
-                "{eda_insights} und {model_details_and_performance}. Fasse alle Schritte zusammen und leite "
-                "Handlungsempfehlungen ab."
+                "Erstelle einen umfassenden Bericht basierend auf der bereitgestellte CSV-Datei {dataset_path}. Fasse alle Schritte zusammen und leite "
+                "Handlungsempfehlungen ab. Benutze panads und seaborn, um die Daten schön darzustellen. Benutze dein Tool dafür."
             ),
-            expected_output="Fertig formatierter Abschlussbericht im Markdown-Format",
+            expected_output="Fertig formatierter Abschlussbericht im Markdown-Format als ipynb Datei. Mit python (panads und seaborn). Der Code soll ausführar sein.",
             agent=agent,
             context=context
         )

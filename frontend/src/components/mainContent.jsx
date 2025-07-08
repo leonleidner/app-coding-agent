@@ -1,5 +1,5 @@
 // src/components/MainContent.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box, Typography, TextField, Button, Select, MenuItem, FormControl,
   InputLabel, Link, Stack, Paper, CircularProgress
@@ -11,6 +11,7 @@ import { useTheme } from '@mui/material/styles';
 
 // Importiere die ausgelagerte Dialog-Komponente
 import HowItWorksDialog from './howItWorksDialog';
+import AnsiToHtml from 'ansi-to-html';
 
 const MainContent = ({ datasetPath, setDatasetPath }) => {
   const theme = useTheme();
@@ -39,10 +40,16 @@ const MainContent = ({ datasetPath, setDatasetPath }) => {
 
   const ws = useRef(null); // Ref für das WebSocket-Objekt
   const logsEndRef = useRef(null); // Ref zum automatischen Scrollen der Logs
+  const ansiConverter = useMemo(() => new AnsiToHtml({ newline: true }), []);
 
   const scrollToBottom = () => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const logsHtml = useMemo(
+    () => ansiConverter.toHtml(crewLogs.join('\n')),
+    [crewLogs, ansiConverter]
+  );
 
   useEffect(scrollToBottom, [crewLogs]); // Scrolle nach unten, wenn neue Logs hinzukommen
 
@@ -79,6 +86,20 @@ const MainContent = ({ datasetPath, setDatasetPath }) => {
       setDatasetPath(data.file_path);
     } else {
       setError('Fehler beim Hochladen der Datei');
+    }
+  };
+
+  const handleCancelTask = async () => {
+    if (!currentTaskId) return;
+    try {
+      await fetch(`http://localhost:8000/api/cancel_task/${currentTaskId}`, { method: 'POST' });
+      setCrewLogs(prev => [...prev, '[SYSTEM] Cancel request sent.']);
+    } catch (err) {
+      console.error('Fehler beim Abbrechen:', err);
+      setCrewLogs(prev => [...prev, '[SYSTEM-ERROR] Cancel request failed.']);
+    } finally {
+      if (ws.current) ws.current.close(1000, 'Cancelled');
+      setIsLoading(false);
     }
   };
 
@@ -179,16 +200,16 @@ const MainContent = ({ datasetPath, setDatasetPath }) => {
     <>
       <Paper sx={{
         padding: 4,
-        maxWidth: '1000px',
+        maxWidth: '1250px',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
       }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-          Meet PwC Coding Agent: an <span style={{ color: theme.palette.primary.main }}>async</span> development agent.
+          Meet Data Science Agent: an <span style={{ color: theme.palette.primary.main }}>async</span> development agent.
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" textAlign="center" gutterBottom>
-          PwC Coding Agent tackles bugs, small feature requests, and other software engineering tasks, with direct export to GitHub.
+          My Data Science Agent tackles insights, small feature requests, and other data science tasks, with direct export to GitHub.
         </Typography>
 
         <FormControl fullWidth variant="outlined" size="small" sx={{ mt: 2, mb:1, backgroundColor: 'rgba(0,0,0,0.2)' }}>
@@ -212,7 +233,7 @@ const MainContent = ({ datasetPath, setDatasetPath }) => {
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Ask our Coding Agent to work on a task (e.g., 'Change the color of the theme to green.')"
+          placeholder="Ask our Data Science Agent to work on a task (e.g., 'Analyze the given dataset. Which attributes correlate the most?')"
           multiline
           rows={3}
           value={taskInput}
@@ -247,7 +268,7 @@ const MainContent = ({ datasetPath, setDatasetPath }) => {
         </Stack>
         {datasetPath && (
           <Typography variant="caption" sx={{ mb: 1 }}>
-            Hochgeladen: {datasetPath}
+            Hinterlegtes Dataset: {datasetPath}
           </Typography>
         )}
 
@@ -262,7 +283,17 @@ const MainContent = ({ datasetPath, setDatasetPath }) => {
         >
           {isLoading ? <CircularProgress size={24} color="inherit" /> : "Give me a plan"}
         </Button>
-
+        {isLoading && (
+          <Button
+            variant="outlined"
+            color="secondary"
+            fullWidth
+            onClick={handleCancelTask}
+            sx={{ mb: 2, borderRadius: '8px' }}
+          >
+            Cancel
+          </Button>
+        )}
         {error && (
           <Typography color="error" sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>
             Fehler: {error}
@@ -274,9 +305,10 @@ const MainContent = ({ datasetPath, setDatasetPath }) => {
             <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary }} gutterBottom>
               Agent Logs {currentTaskId ? `(Task: ${currentTaskId.substring(0,8)}...)` : ''}:
             </Typography>
-            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '12px', color: theme.palette.text.primary }}>
-              {crewLogs.join('\n')}
-            </pre>
+            <pre
+              style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '12px', color: theme.palette.text.primary }}
+              dangerouslySetInnerHTML={{ __html: logsHtml }}
+            />
             <div ref={logsEndRef} />
           </Box>
         )}
