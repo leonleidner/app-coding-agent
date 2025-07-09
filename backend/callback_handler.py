@@ -172,11 +172,9 @@ class WebSocketCallbackHandler(BaseCallbackHandler):
         if text and text.strip():
             source_name = kwargs.get('name', 'System/Agent')
             # Vermeide das Loggen von "Thought:", wenn es bereits von on_agent_action abgedeckt wird.
-            # Dies ist eine einfache Heuristik und muss ggf. angepasst werden.
             if not text.lower().strip().startswith("thought:"):
                 await self._send_log(f"{source_name} Info", text.strip())
 
-# Stelle sicher, dass diese Klasse auf oberster Ebene in der Datei definiert ist:
 class WebSocketStream(io.StringIO):
     def __init__(
         self,
@@ -190,7 +188,6 @@ class WebSocketStream(io.StringIO):
         self.original_stdout = original_stdout  # Speichere das originale stdout
         self.event_type_prefix = event_type_prefix
         self.line_buffer = ""  # Puffer für Zeilen
-        # Event-Loop zum Scheduling der Sendetasks (wichtig bei Threads)
         self.loop = loop or asyncio.get_event_loop()
 
     def _schedule_send(self, coro: asyncio.Future) -> None:

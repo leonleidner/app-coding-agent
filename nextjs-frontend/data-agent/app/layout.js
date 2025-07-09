@@ -9,7 +9,7 @@ import '../app/styles/App.css';
 import { DatasetProvider } from '../app/context/DatasetContext';
 
 export const EXPANDED_SIDEBAR_WIDTH = 225;
-export const COLLAPSED_SIDEBAR_WIDTH = 60;
+export const COLLAPSED_SIDEBAR_WIDTH = 70;
 
 export default function RootLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

@@ -1,4 +1,3 @@
-# coding_agent_backend/main.py
 import asyncio
 import uuid
 import sys  # Für stdout Umleitung
@@ -37,29 +36,33 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 LATEST_UPLOADED_DATASET: Optional[str] = None
 
 # Importiere Konfigurationen und Komponenten
-from llm_config import manager_llm as global_manager_llm, google_api_key # get_dynamic_llm für Worker
-from agents import managerAgent, WorkerAgents # Importiere auch den Manager-Agenten für Vergleiche
+from llm_config import manager_llm as global_manager_llm, google_api_key
+from agents import managerAgent, WorkerAgents 
 from tasks import data_science_tasks
-# Stelle sicher, dass WebSocketStream auch importiert wird, falls es in callback_handler.py ist
 from callback_handler import WebSocketCallbackHandler, WebSocketStream
 from crewai import Crew, Process
 
-# Langchain Debugging (kann sehr gesprächig sein, ggf. für Produktion auf False setzen)
+
 import langchain
-langchain.debug = True # Oder os.getenv("LANGCHAIN_DEBUG", "False").lower() == "true"
+langchain.debug = True
 
 app = FastAPI()
 
 # CORS-Einstellungen
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:4173", "http://localhost:3000"], # 5173 hinzugefügt, falls Vite es nutzt
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+# --------------------------------------- 
+#                                       -
 # --- WebSocket Connection Management ---
+#                                       -
+# ---------------------------------------
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, List[WebSocket]] = {}
@@ -111,7 +114,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Mapping of running task IDs to asyncio tasks for cancellation
+
 RUNNING_TASKS: Dict[str, asyncio.Task] = {}
 
 # Pydantic-Modell für den Request-Body
@@ -122,7 +125,12 @@ class StartTaskRequest(BaseModel):
     user_project_goal: Optional[str] = "Allgemeine Analyse durchführen."
     dataset_path: Optional[str] = None
 
-# --- Asynchrone Crew Ausführung ---
+# --------------------------------------- 
+#                                       -
+# ---    Asynchrone Crew Ausführung   ---
+#                                       -
+# ---------------------------------------
+
 async def run_crew_asynchronously(
     task_id: str,
     user_inputs: Dict[str, Any],
@@ -133,19 +141,11 @@ async def run_crew_asynchronously(
     custom_callback_handler = WebSocketCallbackHandler(websocket_manager=connection_manager, task_id=task_id)
     ##Agents
     lead_data_scientist = managerAgent().lead_data_scientist()
-    data_gatherer = WorkerAgents().data_gatherer(LATEST_UPLOADED_DATASET)
-    data_cleaner = WorkerAgents().data_cleaner()
-    eda_agent = WorkerAgents().eda_agent()
-    modeling_agent = WorkerAgents().modeling_agent()
     reporting_agent = WorkerAgents().reporting_agent()
 
     ##Tasks
     tasks = data_science_tasks()
     data_science_project_task = tasks.data_science_project_task(lead_data_scientist)
-    data_gather_task = tasks.data_gather_task(data_gatherer, [data_science_project_task])
-    data_clean_task = tasks.data_clean_task(data_cleaner, [data_gather_task])
-    eda_task = tasks.eda_task(eda_agent, [data_clean_task])
-    modeling_task = tasks.modeling_task(modeling_agent, [eda_task])
     reporting_task = tasks.reporting_task(reporting_agent, [data_science_project_task])
 
 
@@ -172,7 +172,6 @@ async def run_crew_asynchronously(
     )
 
     original_stdout = sys.stdout
-    # event_type_prefix für die rohen CrewAI Konsolenlogs, die über WebSocket gestreamt werden
     ws_stream = WebSocketStream(
         custom_callback_handler,
         original_stdout,
@@ -223,7 +222,12 @@ async def run_crew_asynchronously(
             sys.stdout = original_stdout # Endgültige Wiederherstellung
         await connection_manager.close_connections_for_task(task_id)
 
-# --- API Endpunkte ---
+
+# --------------------------------------- 
+#                                       -
+# ---           API Endpunkte         ---
+#                                       -
+# ---------------------------------------
 
 @app.post("/api/upload_csv")
 async def upload_csv(file: UploadFile = File(...)):
@@ -254,7 +258,6 @@ async def start_crew_task_endpoint(request_data: StartTaskRequest):
         "user_dataset_description": request_data.user_dataset_description,
         "user_project_goal": request_data.user_project_goal,
         "user_raw_query": request_data.task,
-        # Die folgenden sind wichtig, wenn deine Agenten-Goals/Tasks diese Platzhalter verwenden
         "dataset_description": request_data.user_dataset_description,
         "dataset_path": dataset_path,
         "project_goal": request_data.user_project_goal,
@@ -279,15 +282,6 @@ async def start_crew_task_endpoint(request_data: StartTaskRequest):
 
     return {"message": "CrewAI Task gestartet", "task_id": task_id}
 
-@app.post("/api/cancel_task/{task_id}")
-async def cancel_task(task_id: str):
-    """Request cancellation of a running task."""
-    task = RUNNING_TASKS.get(task_id)
-    if task and not task.done():
-        task.cancel()
-        return {"message": f"Cancellation requested for {task_id}"}
-    return {"message": f"Task {task_id} not running"}
-
 @app.websocket("/ws/logs/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await manager.connect(websocket, task_id)
@@ -306,6 +300,4 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
 # --- Uvicorn Start (für die lokale Entwicklung) ---
 if __name__ == "__main__":
     import uvicorn
-    # Stelle sicher, dass der Host 0.0.0.0 ist, wenn du von einem anderen Gerät/Container zugreifen willst
-    # oder 127.0.0.1, wenn nur lokal.
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

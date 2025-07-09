@@ -161,7 +161,7 @@ const Sidebar = ({ isOpen, toggleSidebar, width }) => {
             </IconButton>
         </Tooltip>
         <Tooltip title="Twitter">
-          <IconButton><TwitterIcon /></IconButton>
+          <IconButton onClick={() => window.open('https://x.com', '_blank')}><TwitterIcon /></IconButton>
         </Tooltip>
       </Box>
       <HowItWorksDialog
